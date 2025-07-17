@@ -24,5 +24,7 @@ export class CartController{
         if(!cart){
             throw new NotFoundException();
         }
+
+        return cart
     }
 }
