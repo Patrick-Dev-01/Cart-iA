@@ -9,3 +9,21 @@ export type Product = {
     name: string;
   }
 };
+
+export type Cart = {
+    id: number;
+    user_id: number;
+    created_at: string;
+    store_id: number;
+    active: boolean;
+    total: number;
+    store: {
+      name: string;
+    }
+    items: {
+        id: number;
+        name: string;
+        price: number;
+        quantity: number;
+    }[];
+}

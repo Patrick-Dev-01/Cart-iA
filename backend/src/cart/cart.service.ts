@@ -7,12 +7,16 @@ type Cart = {
     created_at: string;
     store_id: number;
     active: boolean;
+    store: {
+        name: string;
+    }
     items: {
         id: number;
         name: string;
         price: number;
         quantity: number;
     }[];
+    total: number;
 }
 
 @Injectable()
@@ -79,6 +83,9 @@ export class CartService{
                 carts.created_at AS created_at,
                 carts.store_id AS store_id,
                 carts.active AS active,
+                json_build_object(
+                    'name', stores.name
+                ) AS store,
                 json_agg(
                     json_build_object(
                         'id', products.id,
@@ -90,9 +97,10 @@ export class CartService{
             FROM carts 
             LEFT JOIN cart_items ON carts.id = cart_items.cart_id 
             LEFT JOIN products ON cart_items.product_id = products.id
+            JOIN stores on carts.store_id = stores.id
 
             WHERE user_id = $1 AND active = true
-            GROUP BY carts.id 
+            GROUP BY carts.id, stores.id
             `, 
             [userId],
         );
@@ -103,6 +111,7 @@ export class CartService{
         ? {
             ...result.rows[0],
             items: hasItems ? result.rows[0].items : [], 
+            total: result.rows[0].items.reduce((acc, item) => acc + item.price * item.quantity, 0) ?? 0
         } 
         : null
     }
