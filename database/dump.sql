@@ -1,11 +1,13 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 
-DROP TABLE IF EXISTS cart_items;
-DROP TABLE IF EXISTS carts;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS products;
-DROP TABLE IF EXISTS stores;
+DROP TABLE IF EXISTS cart_items CASCADE;
+DROP TABLE IF EXISTS carts CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS stores CASCADE;
 DROP TABLE IF EXISTS chat_sessions CASCADE;
+DROP TABLE IF EXISTS chat_messages CASCADE;
+DROP TABLE IF EXISTS chat_messages_actions CASCADE;
 
 CREATE TABLE stores(
     id SERIAL PRIMARY KEY,
@@ -32,7 +34,28 @@ CREATE TABLE chat_sessions(
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
+);
+
+CREATE TABLE chat_messages(
+    id SERIAL PRIMARY KEY,
+    chat_session_id INTEGER REFERENCES chat_sessions(id),
+    content TEXT NOT NULL,
+    sender VARCHAR(50) NOT NULL CHECK (sender IN ('user', 'assistant')),
+    openai_message_id VARCHAR(100) UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    message_type VARCHAR(50) NOT NULL CHECK (message_type IN ('text', 'suggest_carts_result')) DEFAULT 'text' 
+);
+
+CREATE TABLE chat_messages_actions(
+    id SERIAL PRIMARY KEY,
+    chat_message_id INTEGER REFERENCES chat_messages(id),
+    action_type VARCHAR(50) NOT NULL CHECK (action_type IN ('suggest_carts')),
+    payload JSONB NOT NULL, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    confirmed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_chat_message_action UNIQUE (chat_message_id, action_type)
+);
 
 CREATE TABLE carts(
     id SERIAL PRIMARY KEY,

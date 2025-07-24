@@ -1,4 +1,4 @@
-import { Controller, Get, NotFoundException, Param, Post } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post } from "@nestjs/common";
 import { ChatService } from "./chat.service";
 
 @Controller("chat")
@@ -24,5 +24,18 @@ export class ChatController{
         }
 
         return session;
+    }
+
+    @Post(':sessionId/messages')
+    async addUserMessage(
+        @Param('sessionId') sessionId: number,
+        @Body('content') content: string
+    ){
+        if(!content || typeof content !== 'string'){
+            throw new BadRequestException('Content must be a non-empty string')
+        }
+
+        const message = await this.chatService.addUserMessage(sessionId, content);
+        return message;
     }
 }

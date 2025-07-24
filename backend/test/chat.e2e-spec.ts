@@ -37,4 +37,33 @@ describe('CHAT (e2e)', () => {
     expect(getResponse.body).toHaveProperty('id', postResponse.body.id);
     expect(getResponse.body).toHaveProperty('created_at');
  })
+
+  it('should add new messages to the chat session', async() => {
+    const postResponse = await request(app.getHttpServer()).post('/chat');
+    expect(postResponse.status).toBe(201);
+    expect(postResponse.body).toHaveProperty('id');
+
+    const sessionId = postResponse.body.id as number;
+
+    const messageResponse = await request(app.getHttpServer())
+        .post(`/chat/${sessionId}/messages`)
+        .send({ content: 'Hello, world!'});
+
+    expect(messageResponse.status).toBe(201);
+    expect(messageResponse.body).toHaveProperty('id', postResponse.body.id);
+    expect(messageResponse.body).toHaveProperty('content', 'Hello, world!');
+
+    const getResponse = await request(app.getHttpServer()).get(
+      `/chat/${sessionId}`,
+    );
+
+    expect(getResponse.status).toBe(200);
+    expect(getResponse.body.messages).toBeDefined();
+    expect(getResponse.body.messages[0]).toHaveProperty(
+      'content',
+      'Hello, world!'
+    );
+
+    expect(getResponse.body.messages[1]).toHaveProperty('sender', 'assistant')
+  });
 });
