@@ -1,10 +1,12 @@
-import { Injectable } from "@nestjs/common";
+import { BadGatewayException, Injectable } from "@nestjs/common";
 import { PostgresService } from "../shared/postgres.service";
+import { LlmService } from "../shared/llm.service";
 
 @Injectable()
 export class ChatService{
     constructor(
         private readonly postgresService: PostgresService,
+        private readonly llmService: LlmService
     ){}
 
     async createChatSession(userId: number){
@@ -45,7 +47,18 @@ export class ChatService{
     }
 
     async addUserMessage(sessionId: number, content: string){
-        return this.addMessagesToSession(sessionId, content, 'user')
+        const userMessage = await this.addMessagesToSession(sessionId, content, 'user')
+
+        const llmResponse = await this.llmService.answerMessage(content);
+
+        if(!llmResponse){
+            throw new BadGatewayException('Failed to get response from LLM');
+        }
+
+        // Open AI vai gerar a mensagem
+        await this.addMessagesToSession(sessionId, llmResponse.message, 'assistant', llmResponse.responseId, 'text');
+        
+        return userMessage;
     }
 
     private async addMessagesToSession(
