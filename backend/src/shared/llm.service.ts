@@ -55,11 +55,33 @@ export class LlmService{
         })
     }
 
+    async embedInput(input: string): Promise<{ embedding: number[] } | null> {
+        console.log('LlmService.embedInput called with input: ', input);
+        try {
+            const response = await this.client.embeddings.create({
+                model: 'text-embedding-3-small',
+                input: input,
+            });
 
-    async answerMessage(message: string): Promise<(AnswerMessage & { responseId: string }) | null>{
+            console.log('LlmService.embedInput response: ', response.data[0].embedding.length);
+
+            return { embedding: response.data[0].embedding };
+        }
+
+        catch (err) {
+            console.log('Error in LlmService.embedInput: ', err);
+            return null;
+        }
+    }
+
+    async answerMessage(
+        message: string, 
+        previousMessageId: string | null = null,
+    ): Promise<(AnswerMessage & { responseId: string }) | null>{
         try {
             console.log('LlmService.answerMessage called with message ', message);
             const response = await this.client.responses.parse({
+                previous_response_id: previousMessageId,
                 model: 'gpt-4.1-nano',
                 instructions: LlmService.ANSWER_MESSAGE_PROMPT,
                 input: message,
@@ -67,9 +89,10 @@ export class LlmService{
                     format: zodTextFormat(answerMessageSchema, 'answerSchema'),
                 }
             });
-            console.log('LlmService.answerMessage response: ', JSON.stringify(response, null, 2));
+            console.log('LlmService.answerMessage response: ', JSON.stringify(response.output_parsed, null, 2));
     
             if(!response.output_parsed){
+                console.log('No parsed output in response', JSON.stringify(response));
                 return null;
             }
     

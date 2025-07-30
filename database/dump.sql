@@ -52,8 +52,8 @@ CREATE TABLE chat_messages_actions(
     action_type VARCHAR(50) NOT NULL CHECK (action_type IN ('suggest_carts')),
     payload JSONB NOT NULL, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    confirmed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    confirmed_at TIMESTAMP DEFAULT NULL,
+    executed_at TIMESTAMP DEFAULT NULL,
     CONSTRAINT unique_chat_message_action UNIQUE (chat_message_id, action_type)
 );
 
