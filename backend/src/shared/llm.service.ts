@@ -4,6 +4,7 @@ import OpenAI from "openai";
 import { z } from 'zod';
 import { zodTextFormat } from 'openai/helpers/zod'
 import { CreateEmbeddingResponse } from "openai/resources/embeddings";
+import { response } from "express";
 
 const answerMessageSchema = z.object({
     message: z.string(),
@@ -18,6 +19,23 @@ const answerMessageSchema = z.object({
             })
         }),
     ])
+});
+
+const suggestCartsSchema = z.object({
+    carts: z.array(
+        z.object({
+            store_id: z.number(),
+            score: z.number(),
+            products: z.array(
+                z.object({
+                    id: z.number(),
+                    name: z.string(),
+                    price: z.number(),
+                    similarity: z.number(),
+            })
+        )
+    })),
+    response: z.string()
 });
 
 type AnswerMessage = z.infer<typeof answerMessageSchema>
@@ -47,6 +65,65 @@ export class LlmService{
         sobre a receita, pois o usuário pode inserir esses detalhes depois.
     `;
 
+    static readonly SUGGEST_CARTS_PROMPT = `Você é um assistente de um marketplace de conhecimentos gastronômicos. Crie carrinhos de compras por loja com base nos produtos sugeridos.
+       
+        Atente-se ás quantidades de cada produto, e á quantidade disponível em cada loja. Por exemplo, 
+        se a receita pede 1kg de farinha, mas a loja só tem pacotes de 500g, você deve sugerir 2 pacotes de 500g.
+
+        Tolere variações nas marcas e apresentações dos produtos, mas mantenha o foco nos ingredientes necessários para a 
+        receita.
+
+        Calcule um score para cada carrinho sugerido, baseado na quantidade de produtos disponíveis e ma correspondência
+        com os produtos necessários para a melhor execução da receita. Score de 0 a 100.
+
+        Exemplos do que pode diminuir o score, mas não limitados a:
+        - Produtos que não estãlo disponíveis na loja.
+        - Produtos que não correspondem exatamente aos necessários para a receita, mas são substitutos aceitáveis.
+
+        ATENÇÃO: O campo "id" de cada produto nos carrinhos ("carts") deve ser exatamente o id do produto disponível 
+        informado na lista de produtos disponíveis de cada loja. não invente ids, utilize apenas os ids fornecidos.
+
+        Exemplo: 
+           - Input: "Bolo de chocolate. Ingredientes: farinha, açucar, ovos, chocolate meio amargo, fermento em pó.
+           disponíveis na loja 1: farinha de trigo (id: 1), açucar refinado (id: 2), ovos (id: 3), chocolate meio amargo 200g (id: 4), 
+           fermento em pó (id: 5). disponíveis na loja 2: farinha de trigo (id: 6), açucar cristal (id: 7), 
+           ovos caipira (id: 8), chocolate ao leite (id: 9). Produtos disponiveis na loja 3: farinhade trigo (id: 10)."
+           - Resposta:
+            {
+                "carts": [
+                    {
+                        "store_id": 1,
+                        "products": [
+                            {"id": 1, "name": "Farinha de trigo 1kg", "quantity": 1 },
+                            {"id": 2, "name": "Açucar refinado 1kg", "quantity": 1 },
+                            {"id": 3, "name": "Ovos 12 unidades", "quantity": 1 },
+                            {"id": 4, "name": "Chocolate meio amargo 200g", "quantity": 1 },
+                            {"id": 5, "name": "Fermento em pó 100g", "quantity": 1 }
+                        ],
+                        "score": 100,
+                    },
+                    {
+                        "store_id": 2,
+                        "products": [
+                            {"id": 6, "name": "Farinha de trigo 1kg", "quantity": 1 },
+                            {"id": 7, "name": "Açucar cristal 1kg", "quantity": 1 },
+                            {"id": 8, "name": "Ovos caipira unidade", "quantity": 1 },
+                            {"id": 9, "name": "Chocolate ao leite 500g", "quantity": 1 }
+                        ],
+                        "score": 70,
+                    },
+                    {
+                        "store_id": 3,
+                        "products": [
+                            {"id": 10, "name": "Farinha de trigo 1kg", "quantity": 1 }
+                        ],
+                        "score": 20,
+                    },
+                    response: 'Carrinhos sugeridos com base nos produtos disponíveis.'
+                }
+                Os produtos disponiveis de cada loja são informados com seus respectivos ids. Sempre utilize o id correto do 
+                produto disponível ao montar os carrinhos.`
+
     private client: OpenAI;
 
     constructor(private readonly configService: ConfigService){
@@ -55,6 +132,42 @@ export class LlmService{
             webhookSecret: this.configService.get<string>('OPEN_AI_WEBHOOK_SECRET')
         })
     }
+
+    async suggestCarts(relevantProductsByStore: {
+        store_id: number;
+        products: {
+            id: number;
+            name: string;
+            price: number;
+            similarity: number;
+        }[];
+    }[], input: string){
+        try{
+            const response = await this.client.responses.parse({
+                model: 'gpt-4.1-nano',
+                instructions: LlmService.SUGGEST_CARTS_PROMPT,
+                input: `Input do usuário: ${input}\n\nProdutos disponíveis por loja: ${JSON.stringify(relevantProductsByStore, null, 2)}`,
+                text: {
+                    format: zodTextFormat(suggestCartsSchema, 'suggestCartsSchema'),
+                }
+            })
+
+            if(!response.output_parsed){
+                console.log('No parsed output in response', response);
+                return null;
+            }
+
+            return {
+                ...response.output_parsed,
+                responseId: response.id
+            }
+        }
+
+        catch (err) {
+            console.log('Error in LlmService.suggestCarts: ', err);
+            return null;
+        }
+    };
 
     async batchEmbedProducts(
         products: {

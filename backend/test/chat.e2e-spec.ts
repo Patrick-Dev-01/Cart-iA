@@ -4,6 +4,7 @@ import * as request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { PostgresService } from '../src/shared/postgres.service';
+import { get } from 'http';
 
 describe('CHAT (e2e)', () => {
   let app: INestApplication<App>;
@@ -95,9 +96,10 @@ describe('CHAT (e2e)', () => {
 
     expect(getResponse.body.messages[1]).toHaveProperty('sender', 'assistant');
     expect(getResponse.body.messages[1]).toHaveProperty('action');
-    
-    const postConfirmResponse = await request(app.getHttpServer())
-    .post(`/chat/${sessionId}/actions/${getResponse.body.messages[1].action.id}/confirm`);
+
+    const postConfirmResponse = await request(app.getHttpServer()).post(
+      `/chat/${sessionId}/actions/${getResponse.body.messages[1].action.id}/confirm`
+    );
     
     expect(postConfirmResponse.status).toBe(201);
 
@@ -107,11 +109,12 @@ describe('CHAT (e2e)', () => {
 
     expect(getAfterConfirmResponse.status).toBe(200);
 
-    console.log(getAfterConfirmResponse.body.messages);
-    // expect(getAfterConfirmResponse.body.messages).toHaveLength(3);
+    expect(getAfterConfirmResponse.body.messages).toHaveLength(3);
     expect(getAfterConfirmResponse.body.messages[2]).toHaveProperty(
       'sender', 
       'assistant'
     );
-  });
+
+    console.log(getAfterConfirmResponse.body.messages[2]);
+  }, 30000);
 });
