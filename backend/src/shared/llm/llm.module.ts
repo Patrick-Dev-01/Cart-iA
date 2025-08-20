@@ -1,8 +1,20 @@
 import { Module } from '@nestjs/common';
 import { LlmService } from './llm.service';
+import { OpenAiLlmService } from './openai-llm.service';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
-    providers: [LlmService],
+    providers: [{
+        provide: LlmService,
+        useFactory: (configService: ConfigService) => {
+            const provider = configService.get<string>("LLM_PROVIDER");
+
+            if (provider === 'openai'){
+                return new OpenAiLlmService(configService)
+            }
+        },
+        inject: [ConfigService]
+    }],
     exports: [LlmService]
 })
 
