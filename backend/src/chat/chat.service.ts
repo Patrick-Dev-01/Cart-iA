@@ -1,6 +1,6 @@
 import { BadGatewayException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { PostgresService } from "../shared/postgres.service";
-import { LlmService } from "../shared/llm.service";
+import { LlmService } from "../shared/llm/llm.service";
 
 type ChatSession = {
     id: number;

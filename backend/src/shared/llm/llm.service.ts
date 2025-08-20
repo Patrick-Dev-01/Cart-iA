@@ -1,44 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import OpenAI from "openai";
-import { z } from 'zod';
 import { zodTextFormat } from 'openai/helpers/zod'
 import { CreateEmbeddingResponse } from "openai/resources/embeddings";
-import { response } from "express";
-
-const answerMessageSchema = z.object({
-    message: z.string(),
-    action: z.discriminatedUnion("type", [
-        z.object({
-            type: z.literal('send_message')
-        }),
-        z.object({
-            type: z.literal('suggest_carts'),
-            payload: z.object({
-                input: z.string()
-            })
-        }),
-    ])
-});
-
-const suggestCartsSchema = z.object({
-    carts: z.array(
-        z.object({
-            store_id: z.number(),
-            score: z.number(),
-            products: z.array(
-                z.object({
-                    id: z.number(),
-                    name: z.string(),
-                    price: z.number(),
-                    similarity: z.number(),
-            })
-        )
-    })),
-    response: z.string()
-});
-
-type AnswerMessage = z.infer<typeof answerMessageSchema>
+import { AnswerMessage, answerMessageSchema, suggestCartsSchema } from "./schemas";
 
 @Injectable()
 export class LlmService{
