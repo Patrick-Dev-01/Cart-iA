@@ -3,10 +3,12 @@ import { ChatController } from './chat.controller';
 import { PostgresService } from '../shared/postgres.service';
 import { ChatService } from './chat.service';
 import { LlmService } from '../shared/llm.service';
+import { LlmModule } from 'src/shared/llm/llm.module';
 
 @Module({
+    imports: [LlmModule],
     controllers: [ChatController],
-    providers: [PostgresService, ChatService, LlmService],
+    providers: [PostgresService, ChatService],
     exports: []
 })
 

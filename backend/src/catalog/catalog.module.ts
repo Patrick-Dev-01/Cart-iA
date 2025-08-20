@@ -2,12 +2,12 @@ import { Module } from '@nestjs/common';
 import { CatalogController } from './catalog.controller';
 import { CatalogService } from './catalog.service';
 import { PostgresService } from '../shared/postgres.service';
-import { LlmService } from '../shared/llm.service';
+import { LlmModule } from 'src/shared/llm/llm.module';
 
 @Module({
-  imports: [],
+  imports: [LlmModule],
   controllers: [CatalogController],
-  providers: [CatalogService, PostgresService, LlmService],
+  providers: [CatalogService, PostgresService],
   exports: [CatalogService],
 })
 export class CatalogModule {}

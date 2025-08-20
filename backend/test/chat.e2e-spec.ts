@@ -20,8 +20,7 @@ describe('CHAT (e2e)', () => {
     await app.init();
 
     postgresService = moduleFixture.get<PostgresService>(PostgresService)
-    await postgresService.client.query('TRUNCATE TABLE chat_sessions RESTART IDENTITY CASCADE')
-
+    await postgresService.client.query('TRUNCATE TABLE chat_sessions, chat_messages, chat_messages_actions RESTART IDENTITY CASCADE')
   });
 
   afterEach(async() => {
