@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { LlmService } from './llm.service';
 import { OpenAiLlmService } from './openai-llm.service';
 import { ConfigService } from '@nestjs/config';
+import { GeminiLlmService } from './gemini-llm.service';
 
 @Module({
     providers: [{
@@ -11,6 +12,10 @@ import { ConfigService } from '@nestjs/config';
 
             if (provider === 'openai'){
                 return new OpenAiLlmService(configService)
+            }
+
+            if(provider === 'gemini'){
+                return new GeminiLlmService()
             }
         },
         inject: [ConfigService]
