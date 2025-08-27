@@ -23,9 +23,8 @@ export const suggestCartsSchema = z.object({
             products: z.array(
                 z.object({
                     id: z.number(),
+                    quantity: z.number(),
                     name: z.string(),
-                    price: z.number(),
-                    similarity: z.number(),
             })
         )
     })),
